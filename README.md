@@ -7,14 +7,14 @@ Oracle Cloud Infrastructure(OCI) 무료 티어 인스턴스를 생성하는 Go �
 - Go 1.22.8 이상
 - OCI 계정
 - OCI 설정 파일(`~/.oci/config`)
-- `.env` 파일
+- `.env` 파일(`oci-free-arm-instance/.env`)
 
 ## 설치
 
 1. 저장소를 클론합니다:
 
     ```sh
-    git clone https://github.com/limJiAn/oci-free-arm-instance.git
+    git clone https://github.com/limJiAn/oci-free-arm-instance
     cd oci-free-arm-instance
     ```
 
