@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 	"github.com/oracle/oci-go-sdk/v65/common"
@@ -21,13 +22,11 @@ func init() {
 func main() {
 	config := common.DefaultConfigProvider() // deafault ~/.oci/config 설정 사용
 
-	// ComputeClient 생성
 	computeClient, err := core.NewComputeClientWithConfigurationProvider(config)
 	if err != nil {
 		log.Fatalf("Failed to create compute client: %v", err)
 	}
 
-	// 인스턴스 생성
 	instance, err := createInstance(computeClient)
 	if err != nil {
 		log.Fatalf("Failed to create instance: %v", err)
@@ -35,7 +34,6 @@ func main() {
 	fmt.Printf("Instance created: %v\n", *instance.Id)
 }
 
-// 프리티어 인스턴스 생성
 func createInstance(computeClient core.ComputeClient) (*core.Instance, error) {
 	compartmentID := os.Getenv("OCI_COMPARTMENT_ID")
 	subnetID := os.Getenv("OCI_SUBNET_ID")
@@ -46,8 +44,23 @@ func createInstance(computeClient core.ComputeClient) (*core.Instance, error) {
 	if err != nil {
 		log.Fatalf("Failed to read public key: %v", err)
 	}
+	bootVolumeSizeInGBs := os.Getenv("OCI_BOOT_VOLUME_SIZE_IN_GBS")
+	bootVolumeSizeInGBsInt, err := strconv.ParseInt(bootVolumeSizeInGBs, 10, 64)
+	if err != nil {
+		log.Fatalf("Failed to parse boot volume size in GBs: %v", err)
+	}
 
-	// 인스턴스 생성 요청 구성
+	ocupus := os.Getenv("OCI_OCPUS")
+	ocpusFloat, err := strconv.ParseFloat(ocupus, 32)
+	if err != nil {
+		log.Fatalf("Failed to parse ocpus: %v", err)
+	}
+	memoryInGBs := os.Getenv("OCI_MEMORY_IN_GBS")
+	memoryInGBsFloat, err := strconv.ParseFloat(memoryInGBs, 32)
+	if err != nil {
+		log.Fatalf("Failed to parse memory in GBs: %v", err)
+	}
+
 	launchDetails := core.LaunchInstanceDetails{
 		CompartmentId:      &compartmentID,
 		AvailabilityDomain: &availabilityDomain,
@@ -61,8 +74,8 @@ func createInstance(computeClient core.ComputeClient) (*core.Instance, error) {
 		},
 		SourceDetails: core.InstanceSourceViaImageDetails{
 			ImageId:             &imageID,
-			BootVolumeSizeInGBs: common.Int64(100),
-			BootVolumeVpusPerGB: common.Int64(10),
+			BootVolumeSizeInGBs: common.Int64(bootVolumeSizeInGBsInt),
+			// BootVolumeVpusPerGB: common.Int64(10),
 		},
 		IsPvEncryptionInTransitEnabled: common.Bool(true),
 		Metadata: map[string]string{
@@ -84,8 +97,8 @@ func createInstance(computeClient core.ComputeClient) (*core.Instance, error) {
 			IsMonitoringDisabled: common.Bool(false),
 			IsManagementDisabled: common.Bool(false),
 		},
-		DefinedTags:  map[string]map[string]interface{}{},
-		FreeformTags: map[string]string{},
+		// DefinedTags:  map[string]map[string]interface{}{},
+		// FreeformTags: map[string]string{},
 		InstanceOptions: &core.InstanceOptions{
 			AreLegacyImdsEndpointsDisabled: common.Bool(false),
 		},
@@ -93,8 +106,8 @@ func createInstance(computeClient core.ComputeClient) (*core.Instance, error) {
 			RecoveryAction: core.LaunchInstanceAvailabilityConfigDetailsRecoveryActionRestoreInstance,
 		},
 		ShapeConfig: &core.LaunchInstanceShapeConfigDetails{
-			Ocpus:       common.Float32(4),
-			MemoryInGBs: common.Float32(24),
+			Ocpus:       common.Float32(float32(ocpusFloat)),
+			MemoryInGBs: common.Float32(float32(memoryInGBsFloat)),
 		},
 	}
 
@@ -102,7 +115,6 @@ func createInstance(computeClient core.ComputeClient) (*core.Instance, error) {
 		LaunchInstanceDetails: launchDetails,
 	}
 
-	// 인스턴스 생성 요청
 	response, err := computeClient.LaunchInstance(context.Background(), launchInstanceRequest)
 	if err != nil {
 		return nil, err
